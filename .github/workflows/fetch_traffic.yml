@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          persist-credentials: false   # 禁用默认 token
+          persist-credentials: false
           fetch-depth: 0
 
       # 2. Setup Python
@@ -23,22 +23,22 @@ jobs:
         with:
           python-version: "3.10"
 
-      # 3. Install dependencies
+      # 3. Install dependencies  ← 修复了缩进
       - name: Install dependencies
-      run: |
-        pip install requests pandas pyarrow
+        run: |
+          pip install requests pandas pyarrow
 
       # 4. Run fetch script
       - name: Run fetch script
         run: python scripts/fetch_traffic.py
 
-      # 5. Configure git (必须配置邮箱和名字)
+      # 5. Git identity
       - name: Setup Git Identity
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 6. Add new/updated files
+      # 6. Add data files
       - name: Add data files
         run: |
           git add data/*.parquet || echo "No parquet files to add"
