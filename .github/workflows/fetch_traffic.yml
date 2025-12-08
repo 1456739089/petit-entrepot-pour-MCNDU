@@ -1,10 +1,8 @@
 name: Fetch Paris Traffic Data
 
 on:
-  # 每小时触发
   schedule:
-    - cron: "0 * * * *"
-  # 手动触发按钮
+    - cron: "0 * * * *"   # 每小时运行
   workflow_dispatch:
 
 jobs:
@@ -12,33 +10,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout 仓库
+      # 1. Checkout 仓库
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
+          persist-credentials: false   # 禁用默认 token
+          fetch-depth: 0
 
-      # 2️⃣ Setup Python
+      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      # 3️⃣ Install dependencies
+      # 3. Install dependencies
       - name: Install dependencies
-        run: |
-          pip install --upgrade requests pandas pyarrow
+      run: |
+        pip install requests pandas pyarrow
 
-      # 4️⃣ Run fetch script
+      # 4. Run fetch script
       - name: Run fetch script
         run: python scripts/fetch_traffic.py
 
-      # 5️⃣ Commit and push updated Parquet files
-      - name: Commit and push
+      # 5. Configure git (必须配置邮箱和名字)
+      - name: Setup Git Identity
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # 按月生成的 Parquet 文件，匹配所有 data/ 下的 .parquet 文件
-          git add data/*.parquet
-          git commit -m "Update traffic data at $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No changes to commit"
-          git push
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 6. Add new/updated files
+      - name: Add data files
+        run: |
+          git add data/*.parquet || echo "No parquet files to add"
+
+      # 7. Commit changes
+      - name: Commit changes
+        run: |
+          git commit -m "Update traffic data at $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No changes"
+
+      # 8. Push using PAT
+      - name: Push changes
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          git push https://1456739089:${PAT_TOKEN}@github.com/1456739089/petit-entrepot-pour-MCNDU.git HEAD:main
