@@ -13,7 +13,7 @@ now = datetime.utcnow()
 # ---------- 1. 计算目标时间窗口 ----------
 # 两天前
 target_base = now - timedelta(days=2)
-hour_size = 2
+hour_size = 4
 # 向下取整到最近的四小时区间
 hour_block_start_hour = (target_base.hour // hour_size) * hour_size
 target_start = target_base.replace(hour=hour_block_start_hour, minute=0, second=0, microsecond=0)
@@ -32,42 +32,47 @@ output_file = f"data/traffic_{target_start.strftime('%Y-%m')}_{ten_day_period}.p
 
 # 分页参数
 all_records = []
-start_idx = 0
-page_size = 1000
-
-while True:
-    params = {
-        "dataset": "comptages-routiers-permanents",
-        "rows": page_size,
-        "start": start_idx,
-        "sort": "-t_1h",
-        "q": (
-            f"t_1h >= '{target_start.isoformat()}' AND "
-            f"t_1h < '{target_end.isoformat()}'"
-        )
-    }
-
-    # 网络请求重试
-    for attempt in range(3):
-        try:
-            resp = requests.get(url, params=params, timeout=30)
-            resp.raise_for_status()
-            data = resp.json()
+# 按小时拆分请求
+for i in range(hour_size):
+    hour_start = target_start + timedelta(hours=i)
+    hour_end = hour_start + timedelta(hours=1)
+    
+    start_idx = 0
+    page_size = 1000
+    
+    while True:
+        params = {
+            "dataset": "comptages-routiers-permanents",
+            "rows": page_size,
+            "start": start_idx,
+            "sort": "-t_1h",
+            "q": (
+                f"t_1h >= '{hour_start.isoformat()}' AND "
+                f"t_1h < '{hour_end.isoformat()}'"
+            )
+        }
+    
+        # 网络请求重试
+        for attempt in range(3):
+            try:
+                resp = requests.get(url, params=params, timeout=30)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(5)  # 等待 5 秒重试
+                else:
+                    raise Exception(f"Failed to fetch data after 3 attempts: {e}")
+    
+        records = [rec["fields"] for rec in data.get("records", [])]
+        if not records:
             break
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(5)  # 等待 5 秒重试
-            else:
-                raise Exception(f"Failed to fetch data after 3 attempts: {e}")
-
-    records = [rec["fields"] for rec in data.get("records", [])]
-    if not records:
-        break
-
-    all_records.extend(records)
-    start_idx += page_size
-    if len(records) < page_size:
-        break
+    
+        all_records.extend(records)
+        start_idx += page_size
+        if len(records) < page_size:
+            break
 
 # 保存数据
 if all_records:
@@ -77,7 +82,7 @@ if all_records:
         df_existing = pd.read_parquet(output_file)
         df_all = pd.concat([df_existing, df], ignore_index=True)
         # 根据时间和路段 ID 去重
-        if "id_pmr" in df_all.columns:
+        if "iu_ac" in df_all.columns:
             df_all.drop_duplicates(subset=["t_1h", "iu_ac"], inplace=True)
         df_all.to_parquet(output_file, index=False)
     else:
