@@ -13,12 +13,12 @@ now = datetime.utcnow()
 # ---------- 1. 计算目标时间窗口 ----------
 # 两天前
 target_base = now - timedelta(days=2)
-
+hour_size = 1
 # 向下取整到最近的四小时区间
 # 例如如果现在是 13 点 → 取 12 点作为起点
-four_hour_block_start_hour = (target_base.hour // 4) * 4
+four_hour_block_start_hour = (target_base.hour // hour_size) * hour_size
 target_start = target_base.replace(hour=four_hour_block_start_hour, minute=0, second=0, microsecond=0)
-target_end = target_start + timedelta(hours=4)  # 4小时窗口
+target_end = target_start + timedelta(hours=hour_size)  # 小时窗口
 
 # 创建 data 文件夹
 os.makedirs("data", exist_ok=True)
