@@ -10,14 +10,14 @@ url = "https://parisdata.opendatasoft.com/api/records/1.0/search/"
 # 计算目标时间窗口（前两天当前小时）
 now = datetime.utcnow()
 target_start = now - timedelta(days=2)
-target_start = target_start.replace(minute=0, second=0, microsecond=0)
-target_end = target_start + timedelta(hours=1)
+target_start = target_start.replace(hour=0, minute=0, second=0, microsecond=0)
+target_end = target_start + timedelta(day=1)
 
 # 创建 data 文件夹
 os.makedirs("data", exist_ok=True)
 
-# 按月份生成 Parquet 文件，例如 data/traffic_2025-12.parquet
-output_file = f"data/traffic_{target_start.strftime('%Y-%m')}.parquet"
+# create Parquet 文件
+output_file = f"data/new_traffic.parquet"
 
 # 分页参数
 all_records = []
@@ -67,7 +67,7 @@ if all_records:
         df_all = pd.concat([df_existing, df], ignore_index=True)
         # 根据时间和路段 ID 去重
         if "id_pmr" in df_all.columns:
-            df_all.drop_duplicates(subset=["t_1h", "id_pmr"], inplace=True)
+            df_all.drop_duplicates(subset=["t_1h", "iu_ac"], inplace=True)
         df_all.to_parquet(output_file, index=False)
     else:
         df.to_parquet(output_file, index=False)
