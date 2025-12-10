@@ -9,15 +9,27 @@ url = "https://parisdata.opendatasoft.com/api/records/1.0/search/"
 
 # 计算目标时间窗口（前两天当前小时）
 now = datetime.utcnow()
-target_start = now - timedelta(days=2)
-target_start = target_start.replace(hour=0, minute=0, second=0, microsecond=0)
-target_end = target_start + timedelta(days=1)
+
+# ---------- 1. 计算目标时间窗口 ----------
+# 两天前
+target_base = now - timedelta(days=2)
+
+# 向下取整到最近的四小时区间
+# 例如如果现在是 13 点 → 取 12 点作为起点
+four_hour_block_start_hour = (target_base.hour // 4) * 4
+target_start = target_base.replace(hour=four_hour_block_start_hour, minute=0, second=0, microsecond=0)
+target_end = target_start + timedelta(hours=4)  # 4小时窗口
 
 # 创建 data 文件夹
 os.makedirs("data", exist_ok=True)
 
 # create Parquet 文件
-output_file = f"data/new_traffic.parquet"
+# 计算本月第几个十天周期
+day_of_month = target_start.day
+ten_day_period = min((day_of_month - 1) // 10 + 1, 3) # 1~10 -> 1, 11~20 -> 2, 21~31 -> 3
+
+output_file = f"data/traffic_{target_start.strftime('%Y-%m')}_{ten_day_period}.parquet"
+
 
 # 分页参数
 all_records = []
