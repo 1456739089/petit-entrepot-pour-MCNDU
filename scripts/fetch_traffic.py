@@ -34,7 +34,7 @@ output_file = f"data/traffic_{target_start.strftime('%Y-%m')}_{ten_day_period}.p
 # 分页参数
 all_records = []
 start_idx = 0
-page_size = 10000
+page_size = 1000
 
 while True:
     params = {
