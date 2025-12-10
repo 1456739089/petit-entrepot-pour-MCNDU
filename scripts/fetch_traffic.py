@@ -11,7 +11,7 @@ url = "https://parisdata.opendatasoft.com/api/records/1.0/search/"
 now = datetime.utcnow()
 target_start = now - timedelta(days=2)
 target_start = target_start.replace(hour=0, minute=0, second=0, microsecond=0)
-target_end = target_start + timedelta(day=1)
+target_end = target_start + timedelta(days=1)
 
 # 创建 data 文件夹
 os.makedirs("data", exist_ok=True)
